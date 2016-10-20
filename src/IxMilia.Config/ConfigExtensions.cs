@@ -136,6 +136,10 @@ namespace IxMilia.Config
             {
                 parser = value => (T)((object)ParseString(value));
             }
+            else if (typeof(T).GetTypeInfo().IsEnum)
+            {
+                parser = value => (T)((object)(value.Split('|').Select(v => (int)Enum.Parse(typeof(T), v.Trim())).Aggregate((a, b) => a | b)));
+            }
             else
             {
                 // use reflection to find a Parse() method, first trying for one that also takes an IFormatProvider
@@ -163,7 +167,6 @@ namespace IxMilia.Config
                 }
             }
 
-            // TODO: handle enums
             // TODO: handle arrays
             return dictionary.TryParseValue(key, parser, out result);
         }

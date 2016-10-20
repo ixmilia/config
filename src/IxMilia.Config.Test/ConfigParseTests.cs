@@ -54,5 +54,30 @@ namespace IxMilia.Config.Test
             // System.Object has no Parse() method
             VerifyParseFail<object>("foo");
         }
+
+        [Fact]
+        public void ParseEnumTest()
+        {
+            VerifyParse(Numeros.Tres, "Tres");
+        }
+
+        [Fact]
+        public void ParseEnumFlagsTest()
+        {
+            VerifyParse(Numeros.Uno | Numeros.Dos, "Uno | Dos");
+        }
+
+        [Fact]
+        public void ParseEnumFailTest()
+        {
+            VerifyParseFail<Numeros>("Quatro");
+        }
+
+        private enum Numeros
+        {
+            Uno,
+            Dos,
+            Tres,
+        }
     }
 }
