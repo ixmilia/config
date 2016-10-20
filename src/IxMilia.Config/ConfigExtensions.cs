@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 
 namespace IxMilia.Config
@@ -126,6 +128,67 @@ namespace IxMilia.Config
             return sb.ToString();
         }
 
+        public static bool TryParseValue<T>(this IDictionary<string, string> dictionary, string key, out T result)
+        {
+            // try to find a Parse() method to use
+            Func<string, T> parser = null;
+            if (typeof(T) == typeof(string))
+            {
+                parser = value => (T)((object)ParseString(value));
+            }
+            else
+            {
+                // use reflection to find a Parse() method, first trying for one that also takes an IFormatProvider
+                var parseMethod = typeof(T).GetRuntimeMethod("Parse", new[] { typeof(string), typeof(IFormatProvider) });
+                if (parseMethod != null && parseMethod.IsStatic)
+                {
+                    parser = value => (T)parseMethod.Invoke(null, new object[] { value, CultureInfo.InvariantCulture });
+                }
+
+                if (parser == null)
+                {
+                    // otherwise look for the string-only version
+                    parseMethod = typeof(T).GetRuntimeMethod("Parse", new[] { typeof(string) });
+                    if (parseMethod != null && parseMethod.IsStatic)
+                    {
+                        parser = value => (T)parseMethod.Invoke(null, new object[] { value });
+                    }
+                }
+
+                if (parser == null)
+                {
+                    // no parser could be found
+                    result = default(T);
+                    return false;
+                }
+            }
+
+            // TODO: handle enums
+            // TODO: handle arrays
+            return dictionary.TryParseValue(key, parser, out result);
+        }
+
+        public static bool TryParseValue<T>(this IDictionary<string, string> dictionary, string key, Func<string, T> parser, out T result)
+        {
+            result = default(T);
+            string value;
+            if (dictionary.TryGetValue(key, out value))
+            {
+                try
+                {
+                    result = parser(value);
+                }
+                catch
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
         private static bool IsLineIgnorable(string line)
         {
             return string.IsNullOrWhiteSpace(line) || line.StartsWith(";") || line.StartsWith("#");
@@ -176,6 +239,71 @@ namespace IxMilia.Config
         private static string MakeLine(string key, string value)
         {
             return string.Concat(key, " = ", value);
+        }
+
+        private static string ParseString(string value)
+        {
+            if (value == null || value.Length == 1)
+            {
+                // null or too short
+                return value;
+            }
+
+            if (value[0] != value[value.Length - 1] && (value[0] != '\'' || value[0] != '"'))
+            {
+                // not surrounded by single or double quotes
+                return value;
+            }
+
+            var sb = new StringBuilder();
+            var isEscaping = false;
+            foreach (var c in value.ToCharArray().Skip(1).Take(value.Length - 2))
+            {
+                if (isEscaping)
+                {
+                    isEscaping = false;
+                    switch (c)
+                    {
+                        case 'f':
+                            sb.Append('\f');
+                            break;
+                        case 'n':
+                            sb.Append('\n');
+                            break;
+                        case 'r':
+                            sb.Append('\r');
+                            break;
+                        case 't':
+                            sb.Append('\t');
+                            break;
+                        case 'v':
+                            sb.Append('\v');
+                            break;
+                        case '\\':
+                            sb.Append('\\');
+                            break;
+                        case '"':
+                            sb.Append('"');
+                            break;
+                        default:
+                            // unsupported escape sequence, just ignore it
+                            break;
+                    }
+                }
+                else
+                {
+                    if (c == '\\')
+                    {
+                        isEscaping = true;
+                    }
+                    else
+                    {
+                        sb.Append(c);
+                    }
+                }
+            }
+
+            return sb.ToString();
         }
 
         private class KeyPrefixComparer : IComparer<Tuple<string, string>>

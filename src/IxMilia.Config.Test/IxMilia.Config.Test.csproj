@@ -43,6 +43,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConfigParseTests.cs" />
     <Compile Include="ConfigReaderTests.cs" />
     <Compile Include="ConfigWriterTests.cs" />
   </ItemGroup>
