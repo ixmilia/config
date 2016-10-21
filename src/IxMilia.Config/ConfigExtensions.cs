@@ -9,6 +9,17 @@ using System.Text;
 
 namespace IxMilia.Config
 {
+    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
+    public class ConfigPathAttribute : Attribute
+    {
+        public string Path { get; }
+
+        public ConfigPathAttribute(string path)
+        {
+            Path = path;
+        }
+    }
+
     public static class ConfigExtensions
     {
         private static char[] Separator = new[] { '=' };
@@ -202,13 +213,56 @@ namespace IxMilia.Config
 
         public static string ToConfigString<T>(this T value)
         {
-            var toString = GetToStringFunction(typeof(T));
+            var toString = GetToStringFunction(value.GetType());
             return toString?.Invoke(value);
         }
 
         public static void InsertConfigValue<T>(this IDictionary<string, string> dictionary, string key, T value)
         {
             dictionary[key] = value.ToConfigString();
+        }
+
+        public static void DeserializeConfig<T>(this T value, params string[] lines)
+        {
+            var dictionary = new Dictionary<string, string>();
+            dictionary.ParseConfig(lines);
+            foreach (var key in dictionary.Keys)
+            {
+                var property = (from prop in typeof(T).GetRuntimeProperties()
+                                let configPath = prop.GetCustomAttribute<ConfigPathAttribute>()
+                                let path = configPath?.Path ?? prop.Name
+                                where path == key
+                                select prop).FirstOrDefault();
+                if (property != null)
+                {
+                    // a terrible hack to get the appropriate generic method
+                    var getParseFunction = typeof(ConfigExtensions).GetRuntimeMethods().Single(m => m.Name == nameof(GetParseFunction));
+                    getParseFunction = getParseFunction.MakeGenericMethod(property.PropertyType);
+                    var parser = getParseFunction.Invoke(null, new object[0]);
+                    var parseInvoke = parser.GetType().GetRuntimeMethod("Invoke", new[] { typeof(string) });
+                    try
+                    {
+                        var result = parseInvoke.Invoke(parser, new object[] { dictionary[key] });
+                        property.SetValue(value, result);
+                    }
+                    catch
+                    {
+                    }
+                }
+            }
+        }
+
+        public static string SerializeConfig<T>(this T value, params string[] existingLines)
+        {
+            var dict = new Dictionary<string, string>();
+            foreach (var property in typeof(T).GetRuntimeProperties())
+            {
+                var configPath = property.GetCustomAttribute<ConfigPathAttribute>();
+                var key = configPath?.Path ?? property.Name;
+                dict[key] = property.GetValue(value).ToConfigString();
+            }
+
+            return dict.WriteConfig(existingLines);
         }
 
         private static Func<string, T> GetParseFunction<T>()

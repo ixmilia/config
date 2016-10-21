@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="ConfigParseTests.cs" />
     <Compile Include="ConfigReaderTests.cs" />
+    <Compile Include="ConfigSerializeTests.cs" />
     <Compile Include="ConfigToStringTests.cs" />
     <Compile Include="ConfigWriterTests.cs" />
     <Compile Include="Numeros.cs" />
