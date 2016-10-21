@@ -128,12 +128,12 @@ namespace IxMilia.Config
             return sb.ToString();
         }
 
-        public static bool TryParseInto<T>(this string str, out T result)
+        public static bool TryParseValue<T>(this string str, out T result)
         {
-            return str.TryParseInto(GetParseFunction<T>(), out result);
+            return str.TryParseValue(GetParseFunction<T>(), out result);
         }
 
-        public static bool TryParseInto<T>(this string str, Func<string, T> parser, out T result)
+        public static bool TryParseValue<T>(this string str, Func<string, T> parser, out T result)
         {
             result = default(T);
             if (parser == null)
@@ -161,7 +161,7 @@ namespace IxMilia.Config
         public static void TryParseAssign<T>(this string str, Func<string, T> parser, ref T target)
         {
             T result;
-            if (str.TryParseInto(parser, out result))
+            if (str.TryParseValue(parser, out result))
             {
                 target = result;
             }
@@ -177,7 +177,7 @@ namespace IxMilia.Config
             string value;
             if (dictionary.TryGetValue(key, out value))
             {
-                return value.TryParseInto<T>(parser, out result);
+                return value.TryParseValue<T>(parser, out result);
             }
             else
             {
@@ -186,12 +186,12 @@ namespace IxMilia.Config
             }
         }
 
-        public static void TryAssignValue<T>(this IDictionary<string, string> dictionary, string key, ref T target)
+        public static void TryParseAssign<T>(this IDictionary<string, string> dictionary, string key, ref T target)
         {
-            dictionary.TryAssignValue(key, GetParseFunction<T>(), ref target);
+            dictionary.TryParseAssign(key, GetParseFunction<T>(), ref target);
         }
 
-        public static void TryAssignValue<T>(this IDictionary<string, string> dictionary, string key, Func<string, T> parser, ref T target)
+        public static void TryParseAssign<T>(this IDictionary<string, string> dictionary, string key, Func<string, T> parser, ref T target)
         {
             T result;
             if (dictionary.TryParseValue(key, parser, out result))

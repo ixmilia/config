@@ -45,10 +45,10 @@ Other extension methods are provided to aid in parsing out the individual string
 values, such as:
 
 ``` C#
-<string>.TryParseInto()
+<string>.TryParseValue()
 <string>.TryParseAssign()
 <IDictionary<string, string>>.TryParseValue()
-<IDictionary<string, string>>.TryAssignValue()
+<IDictionary<string, string>>.TryParseAssign()
 ```
 
 When writing a file back to disk you have the option of provding the original lines

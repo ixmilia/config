@@ -44,7 +44,7 @@ namespace IxMilia.Config.Test
             var dict = new Dictionary<string, string>();
             dict["key"] = "2.0";
             var dbl = 1.0;
-            dict.TryAssignValue("key", ref dbl);
+            dict.TryParseAssign("key", ref dbl);
             Assert.Equal(2.0, dbl);
         }
 
