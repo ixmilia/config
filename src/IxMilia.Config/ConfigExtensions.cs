@@ -202,37 +202,61 @@ namespace IxMilia.Config
 
         private static Func<string, T> GetParseFunction<T>()
         {
-            // try to find a Parse() method to use
-            Func<string, T> parser = null;
-            if (typeof(T) == typeof(string))
+            var parser = GetParseFunctionSimple(typeof(T));
+            if (typeof(T).IsArray)
             {
-                parser = value => (T)((object)ParseString(value));
+                // when creating an array, each element must be manually copied over
+                return str =>
+                {
+                    var items = (object[])parser(str);
+                    var elementType = typeof(T).GetElementType();
+                    var array = Array.CreateInstance(elementType, items.Length);
+                    Array.Copy(items, array, items.Length);
+                    return (T)((object)array);
+                };
             }
-            else if (typeof(T).GetTypeInfo().IsEnum)
+
+            return x => (T)parser(x);
+        }
+
+        private static Func<string, object> GetParseFunctionSimple(Type type)
+        {
+            // try to find a Parse() method to use
+            Func<string, object> parser = null;
+            if (type == typeof(string))
             {
-                parser = value => (T)((object)(value.Split('|').Select(v => (int)Enum.Parse(typeof(T), v.Trim())).Aggregate((a, b) => a | b)));
+                parser = value => ParseString(value);
+            }
+            else if (type.GetTypeInfo().IsEnum)
+            {
+                parser = value => value.Split('|').Select(v => (int)Enum.Parse(type, v.Trim())).Aggregate((a, b) => a | b);
+            }
+            else if (type.IsArray)
+            {
+                var elementType = type.GetElementType();
+                var elementParser = GetParseFunctionSimple(elementType);
+                parser = str => str.Split(';').Select(s => elementParser(s)).ToArray();
             }
             else
             {
                 // use reflection to find a Parse() method, first trying for one that also takes an IFormatProvider
-                var parseMethod = typeof(T).GetRuntimeMethod("Parse", new[] { typeof(string), typeof(IFormatProvider) });
+                var parseMethod = type.GetRuntimeMethod("Parse", new[] { typeof(string), typeof(IFormatProvider) });
                 if (parseMethod != null && parseMethod.IsStatic)
                 {
-                    parser = value => (T)parseMethod.Invoke(null, new object[] { value, CultureInfo.InvariantCulture });
+                    parser = value => parseMethod.Invoke(null, new object[] { value, CultureInfo.InvariantCulture });
                 }
 
                 if (parser == null)
                 {
                     // otherwise look for the string-only version
-                    parseMethod = typeof(T).GetRuntimeMethod("Parse", new[] { typeof(string) });
+                    parseMethod = type.GetRuntimeMethod("Parse", new[] { typeof(string) });
                     if (parseMethod != null && parseMethod.IsStatic)
                     {
-                        parser = value => (T)parseMethod.Invoke(null, new object[] { value });
+                        parser = value => parseMethod.Invoke(null, new object[] { value });
                     }
                 }
             }
 
-            // TODO: handle arrays
             return parser;
         }
 

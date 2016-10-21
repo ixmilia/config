@@ -91,6 +91,12 @@ namespace IxMilia.Config.Test
             VerifyParseFail<Numeros>("Quatro");
         }
 
+        [Fact]
+        public void ParseArrayTest()
+        {
+            VerifyParse(new[] { 1.0, 2.0 }, "1.0;2.0");
+        }
+
         private enum Numeros
         {
             Uno,
