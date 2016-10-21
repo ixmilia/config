@@ -82,7 +82,7 @@ namespace IxMilia.Config.Test
         [Fact]
         public void ParseEnumFlagsTest()
         {
-            VerifyParse(Numeros.Uno | Numeros.Dos, "Uno | Dos");
+            VerifyParse(Flags.IsAlpha | Flags.IsBeta, "IsAlpha|IsBeta");
         }
 
         [Fact]

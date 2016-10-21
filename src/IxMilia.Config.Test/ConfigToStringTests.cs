@@ -33,7 +33,7 @@ namespace IxMilia.Config.Test
         [Fact]
         public void FlagsEnumToConfigStringTest()
         {
-            Verify("Uno|Dos", Numeros.Uno | Numeros.Dos);
+            Verify("IsAlpha|IsBeta", Flags.IsAlpha | Flags.IsBeta);
         }
 
         [Fact]

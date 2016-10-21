@@ -342,6 +342,15 @@ namespace IxMilia.Config
                 toString = value =>
                 {
                     var enm = (Enum)value;
+
+                    // first try a simple `.ToString()` call
+                    var simple = enm.ToString();
+                    if (Enum.GetNames(type).Contains(simple))
+                    {
+                        return simple;
+                    }
+
+                    // otherwise construct it from the flags
                     var flags = new List<string>();
                     foreach (Enum flag in Enum.GetValues(type))
                     {

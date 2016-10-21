@@ -48,7 +48,7 @@
     <Compile Include="ConfigSerializeTests.cs" />
     <Compile Include="ConfigToStringTests.cs" />
     <Compile Include="ConfigWriterTests.cs" />
-    <Compile Include="Numeros.cs" />
+    <Compile Include="Enums.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
