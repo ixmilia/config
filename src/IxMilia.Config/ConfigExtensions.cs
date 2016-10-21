@@ -228,27 +228,7 @@ namespace IxMilia.Config
             dictionary.ParseConfig(lines);
             foreach (var key in dictionary.Keys)
             {
-                var property = (from prop in typeof(T).GetRuntimeProperties()
-                                let configPath = prop.GetCustomAttribute<ConfigPathAttribute>()
-                                let path = configPath?.Path ?? prop.Name
-                                where path == key
-                                select prop).FirstOrDefault();
-                if (property != null)
-                {
-                    // a terrible hack to get the appropriate generic method
-                    var getParseFunction = typeof(ConfigExtensions).GetRuntimeMethods().Single(m => m.Name == nameof(GetParseFunction));
-                    getParseFunction = getParseFunction.MakeGenericMethod(property.PropertyType);
-                    var parser = getParseFunction.Invoke(null, new object[0]);
-                    var parseInvoke = parser.GetType().GetRuntimeMethod("Invoke", new[] { typeof(string) });
-                    try
-                    {
-                        var result = parseInvoke.Invoke(parser, new object[] { dictionary[key] });
-                        property.SetValue(value, result);
-                    }
-                    catch
-                    {
-                    }
-                }
+                value.DeserializeProperty(key, dictionary[key]);
             }
         }
 
@@ -263,6 +243,31 @@ namespace IxMilia.Config
             }
 
             return dict.WriteConfig(existingLines);
+        }
+
+        public static void DeserializeProperty<T>(this T parentObject, string key, string value)
+        {
+            var property = (from prop in typeof(T).GetRuntimeProperties()
+                            let configPath = prop.GetCustomAttribute<ConfigPathAttribute>()
+                            let path = configPath?.Path ?? prop.Name
+                            where path == key
+                            select prop).FirstOrDefault();
+            if (property != null)
+            {
+                // a terrible hack to get the appropriate generic method
+                var getParseFunction = typeof(ConfigExtensions).GetRuntimeMethods().Single(m => m.Name == nameof(GetParseFunction));
+                getParseFunction = getParseFunction.MakeGenericMethod(property.PropertyType);
+                var parser = getParseFunction.Invoke(null, new object[0]);
+                var parseInvoke = parser.GetType().GetRuntimeMethod("Invoke", new[] { typeof(string) });
+                try
+                {
+                    var result = parseInvoke.Invoke(parser, new object[] { value });
+                    property.SetValue(parentObject, result);
+                }
+                catch
+                {
+                }
+            }
         }
 
         private static Func<string, T> GetParseFunction<T>()

@@ -49,6 +49,18 @@ numeros = Quatro
             Assert.Equal(Numeros.Quatro, tc.EnumValue);
         }
 
+        [Fact]
+        public void DeserializePropertyTest()
+        {
+            var tc = new TestClass();
+            Assert.Equal(0.0, tc.DoubleValue);
+            Assert.Equal((Numeros)0, tc.EnumValue);
+            tc.DeserializeProperty("DoubleValue", "2.0");
+            tc.DeserializeProperty("enums.numeros", "Quatro");
+            Assert.Equal(2.0, tc.DoubleValue);
+            Assert.Equal(Numeros.Quatro, tc.EnumValue);
+        }
+
         private class TestClass
         {
             public double DoubleValue { get; set; }
