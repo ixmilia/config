@@ -128,7 +128,79 @@ namespace IxMilia.Config
             return sb.ToString();
         }
 
+        public static bool TryParseInto<T>(this string str, out T result)
+        {
+            return str.TryParseInto(GetParseFunction<T>(), out result);
+        }
+
+        public static bool TryParseInto<T>(this string str, Func<string, T> parser, out T result)
+        {
+            result = default(T);
+            if (parser == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                result = parser(str);
+            }
+            catch
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        public static void TryParseAssign<T>(this string str, ref T target)
+        {
+            str.TryParseAssign(GetParseFunction<T>(), ref target);
+        }
+
+        public static void TryParseAssign<T>(this string str, Func<string, T> parser, ref T target)
+        {
+            T result;
+            if (str.TryParseInto(parser, out result))
+            {
+                target = result;
+            }
+        }
+
         public static bool TryParseValue<T>(this IDictionary<string, string> dictionary, string key, out T result)
+        {
+            return dictionary.TryParseValue(key, GetParseFunction<T>(), out result);
+        }
+
+        public static bool TryParseValue<T>(this IDictionary<string, string> dictionary, string key, Func<string, T> parser, out T result)
+        {
+            string value;
+            if (dictionary.TryGetValue(key, out value))
+            {
+                return value.TryParseInto<T>(parser, out result);
+            }
+            else
+            {
+                result = default(T);
+                return false;
+            }
+        }
+
+        public static void TryAssignValue<T>(this IDictionary<string, string> dictionary, string key, ref T target)
+        {
+            dictionary.TryAssignValue(key, GetParseFunction<T>(), ref target);
+        }
+
+        public static void TryAssignValue<T>(this IDictionary<string, string> dictionary, string key, Func<string, T> parser, ref T target)
+        {
+            T result;
+            if (dictionary.TryParseValue(key, parser, out result))
+            {
+                target = result;
+            }
+        }
+
+        private static Func<string, T> GetParseFunction<T>()
         {
             // try to find a Parse() method to use
             Func<string, T> parser = null;
@@ -158,38 +230,10 @@ namespace IxMilia.Config
                         parser = value => (T)parseMethod.Invoke(null, new object[] { value });
                     }
                 }
-
-                if (parser == null)
-                {
-                    // no parser could be found
-                    result = default(T);
-                    return false;
-                }
             }
 
             // TODO: handle arrays
-            return dictionary.TryParseValue(key, parser, out result);
-        }
-
-        public static bool TryParseValue<T>(this IDictionary<string, string> dictionary, string key, Func<string, T> parser, out T result)
-        {
-            result = default(T);
-            string value;
-            if (dictionary.TryGetValue(key, out value))
-            {
-                try
-                {
-                    result = parser(value);
-                }
-                catch
-                {
-                    return false;
-                }
-
-                return true;
-            }
-
-            return false;
+            return parser;
         }
 
         private static bool IsLineIgnorable(string line)

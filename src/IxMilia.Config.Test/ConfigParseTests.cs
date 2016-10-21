@@ -31,6 +31,24 @@ namespace IxMilia.Config.Test
         }
 
         [Fact]
+        public void ParseAssignDoubleTest()
+        {
+            var dbl = 1.0;
+            "2.0".TryParseAssign(ref dbl);
+            Assert.Equal(2.0, dbl);
+        }
+
+        [Fact]
+        public void AssignDoubleFromDictionaryTest()
+        {
+            var dict = new Dictionary<string, string>();
+            dict["key"] = "2.0";
+            var dbl = 1.0;
+            dict.TryAssignValue("key", ref dbl);
+            Assert.Equal(2.0, dbl);
+        }
+
+        [Fact]
         public void ParseStringNotQuotedTest()
         {
             VerifyParse("some string", "some string");
