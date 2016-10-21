@@ -76,7 +76,7 @@ namespace IxMilia.Config.Test
         [Fact]
         public void ParseEnumTest()
         {
-            VerifyParse(Numeros.Tres, "Tres");
+            VerifyParse(Numeros.Dos, "Dos");
         }
 
         [Fact]
@@ -88,20 +88,13 @@ namespace IxMilia.Config.Test
         [Fact]
         public void ParseEnumFailTest()
         {
-            VerifyParseFail<Numeros>("Quatro");
+            VerifyParseFail<Numeros>("Cinco");
         }
 
         [Fact]
         public void ParseArrayTest()
         {
             VerifyParse(new[] { 1.0, 2.0 }, "1.0;2.0");
-        }
-
-        private enum Numeros
-        {
-            Uno,
-            Dos,
-            Tres,
         }
     }
 }

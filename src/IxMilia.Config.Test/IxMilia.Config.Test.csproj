@@ -45,7 +45,9 @@
   <ItemGroup>
     <Compile Include="ConfigParseTests.cs" />
     <Compile Include="ConfigReaderTests.cs" />
+    <Compile Include="ConfigToStringTests.cs" />
     <Compile Include="ConfigWriterTests.cs" />
+    <Compile Include="Numeros.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

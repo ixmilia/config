@@ -200,6 +200,17 @@ namespace IxMilia.Config
             }
         }
 
+        public static string ToConfigString<T>(this T value)
+        {
+            var toString = GetToStringFunction(typeof(T));
+            return toString?.Invoke(value);
+        }
+
+        public static void InsertConfigValue<T>(this IDictionary<string, string> dictionary, string key, T value)
+        {
+            dictionary[key] = value.ToConfigString();
+        }
+
         private static Func<string, T> GetParseFunction<T>()
         {
             var parser = GetParseFunctionSimple(typeof(T));
@@ -258,6 +269,60 @@ namespace IxMilia.Config
             }
 
             return parser;
+        }
+
+        private static Func<object, string> GetToStringFunction(Type type)
+        {
+            Func<object, string> toString = null;
+            if (type == typeof(string))
+            {
+                toString = value => EscapeString((string)value);
+            }
+            else if (type.GetTypeInfo().IsEnum)
+            {
+                toString = value =>
+                {
+                    var enm = (Enum)value;
+                    var flags = new List<string>();
+                    foreach (Enum flag in Enum.GetValues(type))
+                    {
+                        if (enm.HasFlag(flag))
+                        {
+                            flags.Add(Enum.GetName(type, flag));
+                        }
+                    }
+
+                    return String.Join("|", flags);
+                };
+            }
+            else if (type.IsArray)
+            {
+                var elementType = type.GetElementType();
+                var elementToString = GetToStringFunction(elementType);
+                toString = value =>
+                {
+                    var array = (Array)value;
+                    var values = Enumerable.Range(0, array.Length).Select(i => elementToString(array.GetValue(i)));
+                    return string.Join(";", values);
+                };
+            }
+            else
+            {
+                // try to find a `.ToString(IFormatProvider)` method
+                var toStringMethod = type.GetRuntimeMethod("ToString", new[] { typeof(IFormatProvider) });
+                if (toStringMethod != null && !toStringMethod.IsStatic)
+                {
+                    toString = value => (string)toStringMethod.Invoke(value, new[] { CultureInfo.InvariantCulture });
+                }
+
+                if (toString == null)
+                {
+                    // fall back to `object.ToString()`
+                    toString = value => value.ToString();
+                }
+            }
+
+            return toString;
         }
 
         private static bool IsLineIgnorable(string line)
@@ -371,6 +436,48 @@ namespace IxMilia.Config
                     {
                         sb.Append(c);
                     }
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static string EscapeString(string value)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            var sb = new StringBuilder();
+            foreach (var c in value)
+            {
+                switch (c)
+                {
+                    case '\f':
+                        sb.Append("\\f");
+                        break;
+                    case '\n':
+                        sb.Append("\\n");
+                        break;
+                    case '\r':
+                        sb.Append("\\r");
+                        break;
+                    case '\t':
+                        sb.Append("\\t");
+                        break;
+                    case '\v':
+                        sb.Append("\\v");
+                        break;
+                    case '\\':
+                        sb.Append("\\\\");
+                        break;
+                    case '"':
+                        sb.Append("\\\"");
+                        break;
+                    default:
+                        sb.Append(c);
+                        break;
                 }
             }
 
