@@ -453,7 +453,8 @@ namespace IxMilia.Config
                 return value;
             }
 
-            if (value[0] != value[value.Length - 1] && (value[0] != '\'' || value[0] != '"'))
+            var isSurroundedByQuotes = (value[0] == '\'' || value[0] == '"') && value[0] == value[value.Length - 1];
+            if (!isSurroundedByQuotes)
             {
                 // not surrounded by single or double quotes
                 return value;

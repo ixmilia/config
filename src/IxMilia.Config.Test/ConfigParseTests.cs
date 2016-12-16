@@ -55,6 +55,12 @@ namespace IxMilia.Config.Test
         }
 
         [Fact]
+        public void ParseStringNotQuotedSameStartAndEndCharacterTest()
+        {
+            VerifyParse("abba", "abba");
+        }
+
+        [Fact]
         public void ParseQuotedStringTest()
         {
             VerifyParse("final\nvalue", @"""final\nvalue""");
