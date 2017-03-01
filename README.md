@@ -80,6 +80,14 @@ else
 File.WriteAllText(configFilePath, configText);
 ```
 
+## Building locally
+
+Requirements to build locally are:
+
+- [Latest .NET Core SDK](https://github.com/dotnet/cli/releases)  As of this writing the following was also required on Ubuntu 14.04: 
+
+`sudo apt-get install dotnet-sharedframework-microsoft.netcore.app-1.0.3`
+
 ## Integration
 
 All relevant code is in the `src\IxMilia.Config\ConfigExtensions.cs` file so you
