@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 PROJECT=./IxMilia.Config/IxMilia.Config.csproj
 dotnet restore $PROJECT
