@@ -9,7 +9,7 @@
     <AssemblyName>IxMilia.Config</AssemblyName>
     <PackageId>IxMilia.Config</PackageId>
     <PackageTags>config;INI</PackageTags>
-    <PackageProjectUrl>https://github.com/IxMilia/Config</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/ixmilia/config</PackageProjectUrl>
     <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
 
     <!-- SourceLink settings -->
