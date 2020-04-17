@@ -10,7 +10,7 @@
     <PackageId>IxMilia.Config</PackageId>
     <PackageTags>config;INI</PackageTags>
     <PackageProjectUrl>https://github.com/ixmilia/config</PackageProjectUrl>
-    <PackageLicenseUrl>http://www.apache.org/licenses/LICENSE-2.0</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
 
     <!-- SourceLink settings -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
