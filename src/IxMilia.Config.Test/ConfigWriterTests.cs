@@ -12,8 +12,8 @@ namespace IxMilia.Config.Test
         {
             existingText = existingText ?? string.Empty;
             var existingLines = existingText.Trim().Split('\n').Select(line => line.TrimEnd('\r')).ToArray();
-            var actual = dict.WriteConfig(existingLines).Trim();
-            Assert.Equal(expected.Trim(), actual);
+            var actual = dict.WriteConfig(existingLines).Replace("\r", "").Trim();
+            Assert.Equal(expected.Replace("\r", "").Trim(), actual);
         }
 
         [Fact]
@@ -160,6 +160,52 @@ root = stale
 
 [section]
 key1 = stale
+");
+        }
+
+        [Fact]
+        public void NullPropertiesAreNoteWritten()
+        {
+            var dict = new Dictionary<string, string>()
+            {
+                { "key1", "value1" },
+                { "key2", null },
+                { "key3", "value3" },
+            };
+
+            AssertWritten(dict, @"
+key1 = value1
+key3 = value3
+");
+        }
+
+        [Fact]
+        public void NewSettingInGroupDoesNotCauseBlankLineToBeWritten()
+        {
+            var dict = new Dictionary<string, string>()
+            {
+                { "section.key1", "value1" },
+                { "section.key2", "value2" },
+                { "section.key3", "value3" },
+                { "other-section.key4", "value4" },
+            };
+
+            AssertWritten(dict, @"
+[section]
+key1 = value1
+key3 = value3
+key2 = value2
+
+[other-section]
+key4 = value4
+",
+@"
+[section]
+key1 = value1
+key3 = value3
+
+[other-section]
+key4 = value4
 ");
         }
     }

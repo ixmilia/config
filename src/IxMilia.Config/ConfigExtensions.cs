@@ -52,7 +52,7 @@ namespace IxMilia.Config
 
         public static string WriteConfig(this IDictionary<string, string> dictionary, params string[] existingLines)
         {
-            var sb = new StringBuilder();
+            var lines = new List<string>();
             var writtenKeys = new HashSet<string>();
             var sortedKeys = dictionary.Keys
                 .Select(k => GetPrefixAndKey(k))
@@ -69,7 +69,7 @@ namespace IxMilia.Config
                     if (!lastLineWasBlank)
                     {
                         // just re-copy this line out
-                        sb.AppendLine(existing);
+                        lines.Add(existing);
                     }
 
                     lastLineWasBlank = string.IsNullOrWhiteSpace(existing);
@@ -86,7 +86,11 @@ namespace IxMilia.Config
                             var shortKey = prefixAndKey.Item2;
                             var fullKey = MakeFullKey(prefixAndKey);
                             writtenKeys.Add(fullKey);
-                            sb.AppendLine(MakeLine(shortKey, dictionary[fullKey]));
+                            var value = dictionary[fullKey];
+                            if (value != null)
+                            {
+                                lines.Add(MakeLine(shortKey, value));
+                            }
                         }
 
                         prefix = GetSectionName(existing);
@@ -95,11 +99,11 @@ namespace IxMilia.Config
                             // only do this if there's actually something to be written
                             if (extraKeys.Count > 0)
                             {
-                                sb.AppendLine();
+                                lines.Add(string.Empty);
                             }
 
                             // re-copy this line and note what section we're in
-                            sb.AppendLine(existing);
+                            lines.Add(existing);
                         }
                     }
                     else
@@ -111,7 +115,11 @@ namespace IxMilia.Config
                         {
                             // update value
                             writtenKeys.Add(fullKey);
-                            sb.AppendLine(MakeLine(kvp.Key, dictionary[fullKey]));
+                            var value = dictionary[fullKey];
+                            if (value != null)
+                            {
+                                lines.Add(MakeLine(kvp.Key, value));
+                            }
                         }
                         else
                         {
@@ -128,15 +136,45 @@ namespace IxMilia.Config
                 var shortKey = key.Item2;
                 if (prefix != nextPrefix)
                 {
-                    sb.AppendLine();
-                    sb.AppendLine(string.Concat("[", nextPrefix, "]"));
+                    lines.Add(string.Empty);
+                    lines.Add(string.Concat("[", nextPrefix, "]"));
                     prefix = nextPrefix;
                 }
 
-                sb.AppendLine(MakeLine(shortKey, dictionary[MakeFullKey(key)]));
+                var value = dictionary[MakeFullKey(key)];
+                if (value != null)
+                {
+                    lines.Add(MakeLine(shortKey, value));
+                }
             }
 
-            return sb.ToString();
+            // remove blank lines within the same section
+            string lastSectionName = null;
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+                if (IsSectionName(line))
+                {
+                    lastSectionName = GetSectionName(line);
+                }
+                else
+                {
+                    var isLastLine = i == lines.Count - 1;
+                    if (!isLastLine)
+                    {
+                        var nextLine = lines[i + 1];
+                        if (string.IsNullOrEmpty(line) && !IsSectionName(nextLine))
+                        {
+                            // found a blank line in the middle of a section; remove it
+                            lines.RemoveAt(i);
+                            i--; // back off index
+                        }
+                    }
+                }
+            }
+
+            var result = string.Join(Environment.NewLine, lines);
+            return result;
         }
 
         public static bool TryParseValue<T>(this string str, out T result)
@@ -213,6 +251,11 @@ namespace IxMilia.Config
 
         public static string ToConfigString<T>(this T value)
         {
+            if ((object)value is null)
+            {
+                return null;
+            }
+
             var toString = GetToStringFunction(value.GetType());
             return toString?.Invoke(value);
         }

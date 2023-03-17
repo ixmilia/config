@@ -11,7 +11,7 @@ namespace IxMilia.Config.Test
         private void VerifySerialize(string expected, TestClass tc)
         {
             string actual = tc.SerializeConfig();
-            Assert.Equal(expected.Trim(), actual.Trim());
+            Assert.Equal(expected.Replace("\r", "").Trim(), actual.Replace("\r", "").Trim());
         }
 
         [Fact]
