@@ -1,6 +1,4 @@
-﻿// Copyright (c) IxMilia.  All Rights Reserved.
-
-using Xunit;
+﻿using Xunit;
 
 namespace IxMilia.Config.Test
 {
