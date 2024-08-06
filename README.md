@@ -41,16 +41,6 @@ IDictionary<string, string> dict = new Dictionary<string, string>();
 dict.ParseConfig(lines);
 ```
 
-Other extension methods are provided to aid in parsing out the individual string
-values, such as:
-
-``` C#
-<string>.TryParseValue()
-<string>.TryParseAssign()
-<IDictionary<string, string>>.TryParseValue()
-<IDictionary<string, string>>.TryParseAssign()
-```
-
 When writing a file back to disk you have the option of provding the original lines
 from the file which will preserve as much of the original file's structure as
 possible.
@@ -82,7 +72,7 @@ File.WriteAllText(configFilePath, configText);
 
 ## Building locally
 
-To build locally, install the [latest .NET Core 3.0 SDK](https://dotnet.microsoft.com/download).
+To build locally, install the [latest .NET 8.0 SDK](https://dotnet.microsoft.com/download).
 
 ## Integration
 
