@@ -19,7 +19,7 @@ namespace IxMilia.Config.Test
         [Fact]
         public void SimpleParseTest()
         {
-            var dict = Parse(@"
+            var dict = Parse("""
 ; comment
 rootValue = true
 
@@ -28,12 +28,12 @@ rootValue = true
 key = value
 
 [section.deeperSection]
-key = value2
-");
+key = "quoted\nstring"
+""");
             Assert.Equal(3, dict.Keys.Count);
             Assert.Equal("true", dict["rootValue"]);
             Assert.Equal("value", dict["section.key"]);
-            Assert.Equal("value2", dict["section.deeperSection.key"]);
+            Assert.Equal("quoted\nstring", dict["section.deeperSection.key"]);
         }
     }
 }

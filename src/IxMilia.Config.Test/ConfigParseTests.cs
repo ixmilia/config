@@ -1,106 +1,20 @@
 ﻿// Copyright (c) IxMilia.  All Rights Reserved.
 
-using System.Collections.Generic;
 using Xunit;
 
 namespace IxMilia.Config.Test
 {
     public class ConfigParseTests
     {
-        private void VerifyParse<T>(T expected, string value)
+        [Theory]
+        [InlineData("some string", "some string")] // regular string
+        [InlineData("abba", "abba")] // first and last characters identical, but not quotes
+        [InlineData(@"'final\nvalue'", "final\nvalue")] // single-quoted string
+        [InlineData(@"""final\nvalue""", "final\nvalue")] // double-quoted string
+        public void VerifyParse(string value, string expected)
         {
-            var dict = new Dictionary<string, string>();
-            dict["key"] = value;
-            T result;
-            Assert.True(dict.TryParseValue("key", out result));
-            Assert.Equal(expected, result);
-        }
-
-        private void VerifyParseFail<T>(string value)
-        {
-            var dict = new Dictionary<string, string>();
-            dict["key"] = value;
-            T result;
-            Assert.False(dict.TryParseValue("key", out result));
-        }
-
-        [Fact]
-        public void ParseDoubleTest()
-        {
-            VerifyParse(3.14, "3.14");
-        }
-
-        [Fact]
-        public void ParseAssignDoubleTest()
-        {
-            var dbl = 1.0;
-            "2.0".TryParseAssign(ref dbl);
-            Assert.Equal(2.0, dbl);
-        }
-
-        [Fact]
-        public void AssignDoubleFromDictionaryTest()
-        {
-            var dict = new Dictionary<string, string>();
-            dict["key"] = "2.0";
-            var dbl = 1.0;
-            dict.TryParseAssign("key", ref dbl);
-            Assert.Equal(2.0, dbl);
-        }
-
-        [Fact]
-        public void ParseStringNotQuotedTest()
-        {
-            VerifyParse("some string", "some string");
-        }
-
-        [Fact]
-        public void ParseStringNotQuotedSameStartAndEndCharacterTest()
-        {
-            VerifyParse("abba", "abba");
-        }
-
-        [Fact]
-        public void ParseQuotedStringTest()
-        {
-            VerifyParse("final\nvalue", @"""final\nvalue""");
-        }
-
-        [Fact]
-        public void ParseDoubleFailTest()
-        {
-            VerifyParseFail<double>("three");
-        }
-
-        [Fact]
-        public void NoParserTest()
-        {
-            // System.Object has no Parse() method
-            VerifyParseFail<object>("foo");
-        }
-
-        [Fact]
-        public void ParseEnumTest()
-        {
-            VerifyParse(Numeros.Dos, "Dos");
-        }
-
-        [Fact]
-        public void ParseEnumFlagsTest()
-        {
-            VerifyParse(Flags.IsAlpha | Flags.IsBeta, "IsAlpha|IsBeta");
-        }
-
-        [Fact]
-        public void ParseEnumFailTest()
-        {
-            VerifyParseFail<Numeros>("Cinco");
-        }
-
-        [Fact]
-        public void ParseArrayTest()
-        {
-            VerifyParse(new[] { 1.0, 2.0 }, "1.0;2.0");
+            var actual = ConfigExtensions.ParseString(value);
+            Assert.Equal(expected, actual);
         }
     }
 }

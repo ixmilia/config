@@ -22,21 +22,21 @@ namespace IxMilia.Config.Test
             var dict = new Dictionary<string, string>()
             {
                 { "rootValue", "true" },
-                { "section.key2", "value2" },
+                { "section.key2", "quoted\nstring" },
                 { "section.key1", "value1" },
                 { "section.deeperSection.key", "valueDeeper" },
             };
 
-            AssertWritten(dict, @"
+            AssertWritten(dict, """
 rootValue = true
 
 [section]
 key1 = value1
-key2 = value2
+key2 = "quoted\nstring"
 
 [section.deeperSection]
 key = valueDeeper
-");
+""");
         }
 
         [Fact]

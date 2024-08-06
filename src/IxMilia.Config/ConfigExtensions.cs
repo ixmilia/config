@@ -2,24 +2,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 
 namespace IxMilia.Config
 {
-    [AttributeUsage(AttributeTargets.Property, AllowMultiple = false, Inherited = true)]
-    public class ConfigPathAttribute : Attribute
-    {
-        public string Path { get; }
-
-        public ConfigPathAttribute(string path)
-        {
-            Path = path;
-        }
-    }
-
     public static class ConfigExtensions
     {
         private static char[] Separator = new[] { '=' };
@@ -177,265 +164,6 @@ namespace IxMilia.Config
             return result;
         }
 
-        public static bool TryParseValue<T>(this string str, out T result)
-        {
-            return str.TryParseValue(GetParseFunction<T>(), out result);
-        }
-
-        public static bool TryParseValue<T>(this string str, Func<string, T> parser, out T result)
-        {
-            result = default(T);
-            if (parser == null)
-            {
-                return false;
-            }
-
-            try
-            {
-                result = parser(str);
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        public static void TryParseAssign<T>(this string str, ref T target)
-        {
-            str.TryParseAssign(GetParseFunction<T>(), ref target);
-        }
-
-        public static void TryParseAssign<T>(this string str, Func<string, T> parser, ref T target)
-        {
-            T result;
-            if (str.TryParseValue(parser, out result))
-            {
-                target = result;
-            }
-        }
-
-        public static bool TryParseValue<T>(this IDictionary<string, string> dictionary, string key, out T result)
-        {
-            return dictionary.TryParseValue(key, GetParseFunction<T>(), out result);
-        }
-
-        public static bool TryParseValue<T>(this IDictionary<string, string> dictionary, string key, Func<string, T> parser, out T result)
-        {
-            string value;
-            if (dictionary.TryGetValue(key, out value))
-            {
-                return value.TryParseValue<T>(parser, out result);
-            }
-            else
-            {
-                result = default(T);
-                return false;
-            }
-        }
-
-        public static void TryParseAssign<T>(this IDictionary<string, string> dictionary, string key, ref T target)
-        {
-            dictionary.TryParseAssign(key, GetParseFunction<T>(), ref target);
-        }
-
-        public static void TryParseAssign<T>(this IDictionary<string, string> dictionary, string key, Func<string, T> parser, ref T target)
-        {
-            T result;
-            if (dictionary.TryParseValue(key, parser, out result))
-            {
-                target = result;
-            }
-        }
-
-        public static string ToConfigString<T>(this T value)
-        {
-            if ((object)value is null)
-            {
-                return null;
-            }
-
-            var toString = GetToStringFunction(value.GetType());
-            return toString?.Invoke(value);
-        }
-
-        public static void InsertConfigValue<T>(this IDictionary<string, string> dictionary, string key, T value)
-        {
-            dictionary[key] = value.ToConfigString();
-        }
-
-        public static void DeserializeConfig<T>(this T value, params string[] lines)
-        {
-            var dictionary = new Dictionary<string, string>();
-            dictionary.ParseConfig(lines);
-            foreach (var key in dictionary.Keys)
-            {
-                value.DeserializeProperty(key, dictionary[key]);
-            }
-        }
-
-        public static string SerializeConfig<T>(this T value, params string[] existingLines)
-        {
-            var dict = new Dictionary<string, string>();
-            foreach (var property in typeof(T).GetRuntimeProperties())
-            {
-                var configPath = property.GetCustomAttribute<ConfigPathAttribute>();
-                var key = configPath?.Path ?? property.Name;
-                dict[key] = property.GetValue(value).ToConfigString();
-            }
-
-            return dict.WriteConfig(existingLines);
-        }
-
-        public static void DeserializeProperty<T>(this T parentObject, string key, string value)
-        {
-            var property = (from prop in typeof(T).GetRuntimeProperties()
-                            let configPath = prop.GetCustomAttribute<ConfigPathAttribute>()
-                            let path = configPath?.Path ?? prop.Name
-                            where path == key
-                            select prop).FirstOrDefault();
-            if (property != null)
-            {
-                // a terrible hack to get the appropriate generic method
-                var getParseFunction = typeof(ConfigExtensions).GetRuntimeMethods().Single(m => m.Name == nameof(GetParseFunction));
-                getParseFunction = getParseFunction.MakeGenericMethod(property.PropertyType);
-                var parser = getParseFunction.Invoke(null, new object[0]);
-                var parseInvoke = parser.GetType().GetRuntimeMethod("Invoke", new[] { typeof(string) });
-                try
-                {
-                    var result = parseInvoke.Invoke(parser, new object[] { value });
-                    property.SetValue(parentObject, result);
-                }
-                catch
-                {
-                }
-            }
-        }
-
-        private static Func<string, T> GetParseFunction<T>()
-        {
-            var parser = GetParseFunctionSimple(typeof(T));
-            if (typeof(T).IsArray)
-            {
-                // when creating an array, each element must be manually copied over
-                return str =>
-                {
-                    var items = (object[])parser(str);
-                    var elementType = typeof(T).GetElementType();
-                    var array = Array.CreateInstance(elementType, items.Length);
-                    Array.Copy(items, array, items.Length);
-                    return (T)((object)array);
-                };
-            }
-
-            return x => (T)parser(x);
-        }
-
-        private static Func<string, object> GetParseFunctionSimple(Type type)
-        {
-            // try to find a Parse() method to use
-            Func<string, object> parser = null;
-            if (type == typeof(string))
-            {
-                parser = value => ParseString(value);
-            }
-            else if (type.GetTypeInfo().IsEnum)
-            {
-                parser = value => value.Split('|').Select(v => (int)Enum.Parse(type, v.Trim())).Aggregate((a, b) => a | b);
-            }
-            else if (type.IsArray)
-            {
-                var elementType = type.GetElementType();
-                var elementParser = GetParseFunctionSimple(elementType);
-                parser = str => str.Split(';').Select(s => elementParser(s)).ToArray();
-            }
-            else
-            {
-                // use reflection to find a Parse() method, first trying for one that also takes an IFormatProvider
-                var parseMethod = type.GetRuntimeMethod("Parse", new[] { typeof(string), typeof(IFormatProvider) });
-                if (parseMethod != null && parseMethod.IsStatic)
-                {
-                    parser = value => parseMethod.Invoke(null, new object[] { value, CultureInfo.InvariantCulture });
-                }
-
-                if (parser == null)
-                {
-                    // otherwise look for the string-only version
-                    parseMethod = type.GetRuntimeMethod("Parse", new[] { typeof(string) });
-                    if (parseMethod != null && parseMethod.IsStatic)
-                    {
-                        parser = value => parseMethod.Invoke(null, new object[] { value });
-                    }
-                }
-            }
-
-            return parser;
-        }
-
-        private static Func<object, string> GetToStringFunction(Type type)
-        {
-            Func<object, string> toString = null;
-            if (type == typeof(string))
-            {
-                toString = value => EscapeString((string)value);
-            }
-            else if (type.GetTypeInfo().IsEnum)
-            {
-                toString = value =>
-                {
-                    var enm = (Enum)value;
-
-                    // first try a simple `.ToString()` call
-                    var simple = enm.ToString();
-                    if (Enum.GetNames(type).Contains(simple))
-                    {
-                        return simple;
-                    }
-
-                    // otherwise construct it from the flags
-                    var flags = new List<string>();
-                    foreach (Enum flag in Enum.GetValues(type))
-                    {
-                        if (enm.HasFlag(flag))
-                        {
-                            flags.Add(Enum.GetName(type, flag));
-                        }
-                    }
-
-                    return String.Join("|", flags);
-                };
-            }
-            else if (type.IsArray)
-            {
-                var elementType = type.GetElementType();
-                var elementToString = GetToStringFunction(elementType);
-                toString = value =>
-                {
-                    var array = (Array)value;
-                    var values = Enumerable.Range(0, array.Length).Select(i => elementToString(array.GetValue(i)));
-                    return string.Join(";", values);
-                };
-            }
-            else
-            {
-                // try to find a `.ToString(IFormatProvider)` method
-                var toStringMethod = type.GetRuntimeMethod("ToString", new[] { typeof(IFormatProvider) });
-                if (toStringMethod != null && !toStringMethod.IsStatic)
-                {
-                    toString = value => (string)toStringMethod.Invoke(value, new[] { CultureInfo.InvariantCulture });
-                }
-
-                if (toString == null)
-                {
-                    // fall back to `object.ToString()`
-                    toString = value => value.ToString();
-                }
-            }
-
-            return toString;
-        }
-
         private static bool IsLineIgnorable(string line)
         {
             return string.IsNullOrWhiteSpace(line) || line.StartsWith(";") || line.StartsWith("#");
@@ -468,7 +196,8 @@ namespace IxMilia.Config
             var parts = line.Split(Separator, 2);
             var key = parts[0].Trim();
             var value = parts.Length == 2 ? parts[1].Trim() : null;
-            return new KeyValuePair<string, string>(key, value);
+            var parsedValue = ParseString(value);
+            return new KeyValuePair<string, string>(key, parsedValue);
         }
 
         private static string MakeFullKey(Tuple<string, string> key)
@@ -485,10 +214,11 @@ namespace IxMilia.Config
 
         private static string MakeLine(string key, string value)
         {
-            return string.Concat(key, " = ", value);
+            var escapedValue = EscapeString(value);
+            return string.Concat(key, " = ", escapedValue);
         }
 
-        private static string ParseString(string value)
+        internal static string ParseString(string value)
         {
             if (value == null || value.Length == 1)
             {
@@ -554,37 +284,46 @@ namespace IxMilia.Config
             return sb.ToString();
         }
 
-        private static string EscapeString(string value)
+        internal static string EscapeString(string value)
         {
             if (value == null)
             {
                 return null;
             }
 
+            var neededEscaping = false;
             var sb = new StringBuilder();
+            sb.Append('"');
             foreach (var c in value)
             {
                 switch (c)
                 {
                     case '\f':
+                        neededEscaping = true;
                         sb.Append("\\f");
                         break;
                     case '\n':
+                        neededEscaping = true;
                         sb.Append("\\n");
                         break;
                     case '\r':
+                        neededEscaping = true;
                         sb.Append("\\r");
                         break;
                     case '\t':
+                        neededEscaping = true;
                         sb.Append("\\t");
                         break;
                     case '\v':
+                        neededEscaping = true;
                         sb.Append("\\v");
                         break;
                     case '\\':
+                        neededEscaping = true;
                         sb.Append("\\\\");
                         break;
                     case '"':
+                        neededEscaping = true;
                         sb.Append("\\\"");
                         break;
                     default:
@@ -593,7 +332,8 @@ namespace IxMilia.Config
                 }
             }
 
-            return sb.ToString();
+            sb.Append('"');
+            return neededEscaping ? sb.ToString() : value;
         }
 
         private class KeyPrefixComparer : IComparer<Tuple<string, string>>
