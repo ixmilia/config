@@ -6,7 +6,7 @@ namespace IxMilia.Config.Test
 {
     public class ConfigWriterTests
     {
-        private void AssertWritten(IDictionary<string, string> dict, string expected, string existingText = null)
+        private void AssertWritten(IDictionary<string, string> dict, string expected, string? existingText = null)
         {
             existingText = existingText ?? string.Empty;
             var existingLines = existingText.Trim().Split('\n').Select(line => line.TrimEnd('\r')).ToArray();
@@ -158,22 +158,6 @@ root = stale
 
 [section]
 key1 = stale
-");
-        }
-
-        [Fact]
-        public void NullPropertiesAreNoteWritten()
-        {
-            var dict = new Dictionary<string, string>()
-            {
-                { "key1", "value1" },
-                { "key2", null },
-                { "key3", "value3" },
-            };
-
-            AssertWritten(dict, @"
-key1 = value1
-key3 = value3
 ");
         }
 

@@ -134,7 +134,7 @@ namespace IxMilia.Config
             }
 
             // remove blank lines within the same section
-            string lastSectionName = null;
+            string? lastSectionName = null;
             for (int i = 0; i < lines.Count; i++)
             {
                 var line = lines[i];
@@ -189,13 +189,13 @@ namespace IxMilia.Config
             return Tuple.Create(prefix, key);
         }
 
-        private static KeyValuePair<string, string> GetKeyValuePair(string line)
+        private static KeyValuePair<string, string?> GetKeyValuePair(string line)
         {
             var parts = line.Split(Separator, 2);
             var key = parts[0].Trim();
             var value = parts.Length == 2 ? parts[1].Trim() : null;
             var parsedValue = ParseString(value);
-            return new KeyValuePair<string, string>(key, parsedValue);
+            return new KeyValuePair<string, string?>(key, parsedValue);
         }
 
         private static string MakeFullKey(Tuple<string, string> key)
@@ -216,7 +216,7 @@ namespace IxMilia.Config
             return string.Concat(key, " = ", escapedValue);
         }
 
-        internal static string ParseString(string value)
+        internal static string? ParseString(string? value)
         {
             if (value == null || value.Length == 1)
             {
@@ -282,7 +282,7 @@ namespace IxMilia.Config
             return sb.ToString();
         }
 
-        internal static string EscapeString(string value)
+        internal static string? EscapeString(string? value)
         {
             if (value == null)
             {
@@ -342,8 +342,23 @@ namespace IxMilia.Config
             {
             }
 
-            public int Compare(Tuple<string, string> left, Tuple<string, string> right)
+            public int Compare(Tuple<string, string>? left, Tuple<string, string>? right)
             {
+                if (left is null && right is null)
+                {
+                    return 0;
+                }
+
+                if (left is null)
+                {
+                    return -1;
+                }
+
+                if (right is null)
+                {
+                    return 1;
+                }
+
                 // split into parts before comparing, and only compare the number of prefix parts that exist
                 var partsLeft = left.Item1.Split('.');
                 var partsRight = right.Item1.Split('.');
